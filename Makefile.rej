@@ -1,0 +1,85 @@
+***************
+*** 2,8 ****
+  PXE=boot.PXE
+  
+  CC= gcc
+- CFLAGS= -m32 -gstabs -std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+           -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -Iinclude
+  
+  LD= ld
+--- 2,8 ----
+  PXE=boot.PXE
+  
+  CC= gcc
++ CFLAGS= -m32 -g -gstabs -std=c99 -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+           -nostartfiles -nodefaultlibs -Wall -Wextra -Werror -Iinclude
+  
+  LD= ld
+***************
+*** 16,22 ****
+  LIBS= lib/lib.o
+  
+  QEMU = /usr/bin/qemu-system-i386
+- QEMUOPTS = -cpu pentium -rtc base=localtime -m 64M -gdb tcp::1234 -S -kernel kernel.bin
+  
+  # cible principale, on nettoie tout avant
+  .PHONY: all
+--- 16,25 ----
+  LIBS= lib/lib.o
+  
+  QEMU = /usr/bin/qemu-system-i386
++ QEMUOPTS = -cpu pentium -rtc base=localtime -k fr -m 256M -D /tmp/qemu_log.txt  -kernel kernel.bin
++ QEMUGDB= -S -gdb tcp::1234
++ 
++ DEBUG=gdb
+  
+  # cible principale, on nettoie tout avant
+  .PHONY: all
+***************
+*** 34,51 ****
+  boot/crt0.o:
+  	(cd boot ; make)
+  
+  # generation du noyau
+- kernel.bin: boot/crt0.o $(LIBS) kernel/task_dump_screen.o kernel/kernel.o
+  	$(LD) $(LDFLAGS) -e entry -Tboot/kernel.lds $^ -o $@
+  
+  clean:
+  	(cd lib ; make clean)
+  	(cd kernel ; make clean)
+  	(cd boot ; make clean)
+- 	rm -f $(KERNEL)
+  
+- run:
+  	$(QEMU) $(QEMUOPTS)
+  
+  archive: clean
+- 	(cd .. ; tar cvf - n7OS | gzip > n7OS.tgz)
+--- 37,63 ----
+  boot/crt0.o:
+  	(cd boot ; make)
+  
++ bin/app.o:
++ 	(cd bin ; make)
++ 
+  # generation du noyau
++ kernel.bin: boot/crt0.o $(LIBS) kernel/task_dump_screen.o bin/app.o kernel/kernel.o
+  	$(LD) $(LDFLAGS) -e entry -Tboot/kernel.lds $^ -o $@
+  
+  clean:
++ 	(cd bin ; make clean)
+  	(cd lib ; make clean)
+  	(cd kernel ; make clean)
+  	(cd boot ; make clean)
++ 	rm -f $(KERNEL) core *~
++ 
++ dbg: kernel.bin
++ 	$(QEMU) $(QEMUOPTS) $(QEMUGDB) &
++ 	$(DEBUG)$  $^
++ 	pkill qemu
+  
++ run: kernel.bin
+  	$(QEMU) $(QEMUOPTS)
+  
+  archive: clean
++ 	(cd .. ; tar cvf - n7OS | gzip > n7OS_`date +"%F"`.tgz)
