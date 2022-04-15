@@ -6,7 +6,7 @@
 int sys_example();
 
 typedef int (*fn_ptr)();
-fn_ptr syscall_table[NB_SYSCALL];
+extern fn_ptr syscall_table[NB_SYSCALL];
 
 void add_syscall(int num, fn_ptr function);
 

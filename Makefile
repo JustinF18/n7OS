@@ -3,9 +3,9 @@ PROJECT=$(shell dirname $(CWD))
 CURRENT=$(shell basename $(CWD))
 CPU=$(shell uname -m)
 ifeq ($(CPU), arm64)
-	PREFIX=docker run --rm -ti -v $(PROJECT):/usr/src/myapp -w /usr/src/myapp/$(CURRENT) i386gcc i386-elf-
+	PREFIX=docker exec -it  -w /n7OS/$(CURRENT) i386gcc i386-elf-
 else
-	PREFIX=
+	PREFIX=i386-elf-
 endif
 
 KERNEL=kernel.bin
@@ -25,7 +25,7 @@ OBJCOPY=$(PREFIX)objcopy
 
 LIBS= lib/lib.o
 
-QEMU = /usr/bin/qemu-system-i386
+QEMU = qemu-system-i386
 QEMUOPTS = -cpu pentium -rtc base=localtime -k fr -m 256M -D /tmp/qemu_log.txt  -kernel kernel.bin
 QEMUGDB= -s -S -gdb tcp::1234
 

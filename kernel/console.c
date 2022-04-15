@@ -4,16 +4,16 @@
 #define NROW 25
 #define NCOL 80
 
-uint16_t pos = 0;
+static uint16_t pos = 0;
 
 void update_cursor() {
     outb(0xF, 0x3D4);
-    outb(pos && 0xFF, 0x3D5);
+    outb(pos & 0xFF, 0x3D5);
     outb(0xE, 0x3D4);
     outb(pos >> 8, 0x3D5);
 }
 
-void set_cursor(int row, int col) {
+void set_cursor(uint8_t row, uint8_t col) {
     pos = NCOL*row + col;
     update_cursor();
 }
@@ -22,7 +22,7 @@ void console_putchar(const char c) {
     uint8_t *scr_tab= (uint8_t *) 0xB8000;
 
     // Check if the screen is full
-    if (pos >= NROW * NCOL) {
+    if (pos > NROW * NCOL) {
         for (int i = 0; i < NROW * NCOL; i++)
         {
             scr_tab[i*2] = scr_tab[(i + NCOL) * 2];
@@ -57,16 +57,15 @@ void console_putchar(const char c) {
         // Move the cursor at the row start
         pos = (pos / NCOL) * NCOL;
     }
-
-    // The cursor position has changed
-    update_cursor();
 }
 
 // Print a string on the screen
 void console_putbytes(const char *s, int len) {
-    set_cursor(0,0);
     for (int i = 0; i < len; i++)
     {
        console_putchar(*(s+i)); 
     }
+
+    // The cursor position has changed
+    update_cursor();
 }

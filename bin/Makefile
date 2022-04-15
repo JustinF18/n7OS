@@ -3,9 +3,9 @@ PROJECT=$(shell dirname $(CWD))
 CURRENT=$(shell basename $(CWD))
 CPU=$(shell uname -m)
 ifeq ($(CPU), arm64)
-	PREFIX=docker run --rm -ti -v $(PROJECT):/usr/src/myapp -w /usr/src/myapp/$(CURRENT) i386gcc i386-elf-
+	PREFIX=docker exec -it  -w /n7OS/$(CURRENT) i386gcc i386-elf-
 else
-	PREFIX=
+	PREFIX=i386-elf-
 endif
 
 CC=$(PREFIX)gcc
