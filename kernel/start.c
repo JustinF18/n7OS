@@ -5,11 +5,17 @@
 #include <stdio.h>
 #include <n7OS/irq.h>
 #include <n7OS/time.h>
+#include <n7OS/sys.h>
+#include <unistd.h>
 
 extern void handler_IT();
 
 void kernel_start(void)
 {
+    // Initiation du timer systeme et des appels systemes
+    init_timer();
+    init_syscall();
+
     // Nettoyage de l'ecran
     printf("\f");
     // // Test affichage
@@ -17,8 +23,6 @@ void kernel_start(void)
     // {
     //     printf("TEST %d\n", i);
     // }
-    // Initiation du timer systeme
-    init_timer();
 
     // Interruption de test
     init_irq_entry(50, (uint32_t)handler_IT);
@@ -30,6 +34,13 @@ void kernel_start(void)
 
     printf("Bienvenue\n");
     printf("Bye\n");
+
+    if (example() == 1)
+    {
+        printf("Appel systeme example ok\n");
+    }
+
+    write("Test write", 10);
 
     // on ne doit jamais sortir de kernel_start
     while (1)

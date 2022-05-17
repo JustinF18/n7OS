@@ -1,7 +1,7 @@
 .text
 
 # c'est le nombre total d'appels systeme
-nr_syscall = 1
+nr_syscall = 3
 
 .globl handler_syscall
 
