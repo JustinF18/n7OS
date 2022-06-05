@@ -2,14 +2,54 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <malloc.h>
 #include <stddef.h>
 
 struct process_t process_table[NB_PROC];
 // uint32_t stack_table[NB_PROC * STACK_SIZE];
-
 static const struct process_t EmptyStruct;
 
 pid_t next_pid = 0;
+
+// Ordonancement
+typedef struct ProcessList
+{
+    pid_t pid;
+    struct ProcessList *next;
+} ProcessWaiting;
+
+ProcessWaiting *readyList; // Un peu trop grand ce tableau
+
+int addProcess(pid_t pid)
+{
+    ProcessWaiting *new_process;
+    if ((new_process = (ProcessWaiting *)malloc(sizeof(ProcessWaiting))) == NULL)
+        return -1;
+    new_process->pid = pid;
+    if (readyList == NULL)
+    {
+        readyList = new_process;
+    }
+    else
+    {
+        readyList->next = new_process;
+    }
+    return 0;
+}
+
+pid_t depiler()
+{
+    pid_t pid = readyList->pid;
+    ProcessWaiting *supp_element;
+    // if (readyList == NULL)
+    //     return -1;
+    supp_element = readyList;
+    readyList = readyList->next;
+    free(supp_element);
+    return pid;
+}
+
+pid_t pid_actif = 0;
 
 void ctx_sw(void *ctx_old, void *ctx_new);
 
@@ -45,7 +85,7 @@ pid_t creer_process(const char *name, fnptr function)
     // Create an entry in process_table
     process_table[pid].pid = pid;
     // process_table[pid].stack = init_stack();
-    process_table[pid].state = PRET_SUSPENDU;
+    process_table[pid].state = PRET;
 
     // Add the function address in stack
     process_table[pid].stack[STACK_SIZE - 1] = (uint32_t)function;
@@ -80,8 +120,31 @@ int detruire_process(pid_t pid)
     return 0;
 }
 
-void schedule(pid_t old, pid_t new)
+void activer(pid_t pid)
 {
-    printf("Switching from %d to %d\n", old, new);
-    ctx_sw((void *)&process_table[old].ctx, (void *)&process_table[new].ctx);
+    // TODO dans une autre vie : Vérifier que le PID existe
+    pross_state_t etat = process_table[pid].state;
+    if (etat == PRET)
+    {
+        process_table[pid].state = PRET;
+        addProcess(pid);
+        schedule();
+    }
+    else if (etat == BLOQUE)
+    {
+        process_table[pid].state = PRET;
+    }
+}
+
+void schedule()
+{
+    pid_t old = pid_actif;
+    if (readyList != NULL)
+    {
+        pid_t new = depiler();
+        printf("Switching from process %d to %d\n", old, new);
+        pid_actif = new;
+        addProcess(old);
+        ctx_sw((void *)&process_table[old].ctx, (void *)&process_table[new].ctx);
+    }
 }

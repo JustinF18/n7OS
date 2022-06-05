@@ -13,10 +13,8 @@ typedef void *(*fnptr)();
 typedef enum
 {
     ELU,
-    PRET_ACTIF,
-    PRET_SUSPENDU,
-    BLOQUE_ACTIF,
-    BLOQUE_SUSPENDU
+    PRET,
+    BLOQUE
 } pross_state_t;
 
 typedef enum
@@ -42,5 +40,7 @@ pid_t creer_process();
 int detruire_process();
 
 void schedule();
+
+void activer(pid_t pid);
 
 #endif

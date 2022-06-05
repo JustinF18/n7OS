@@ -17,7 +17,7 @@ void idle()
     // detruire_process(pid1);
 
     // Bascule vers le processus 1
-    schedule(0, 1);
+    activer(1);
     printf("IDLE\n");
     // on ne doit jamais sortir de idle (processus 0)
     while (1)
