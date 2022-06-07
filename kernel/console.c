@@ -1,8 +1,10 @@
 #include <n7OS/console.h>
 #include <n7OS/cpu.h>
 #include "inttypes.h"
+#include <stdio.h>
 
 static uint16_t pos = 0;
+uint8_t *scr_tab = (uint8_t *)0xB8000;
 
 void update_cursor()
 {
@@ -30,12 +32,12 @@ void set_cursor(uint8_t row, uint8_t col)
 
 void console_putchar(const char c)
 {
-    uint8_t *scr_tab = (uint8_t *)0xB8000;
-
     // Check if the screen is full
     if (pos > NROW * NCOL)
     {
-        for (int i = 0; i < NROW * NCOL; i++)
+        // Move all content up
+        // Only the first row stay
+        for (int i = NCOL; i < NROW * NCOL; i++)
         {
             scr_tab[i * 2] = scr_tab[(i + NCOL) * 2];
             scr_tab[i * 2 + 1] = scr_tab[(i + NCOL) * 2 + 1];
@@ -67,13 +69,10 @@ void console_putchar(const char c)
     }
     else if (c == '\f')
     {
-        // Clean the screen and move the cursor to first row and column
-        for (int i = 0; i < NCOL * NROW; i++)
-        {
-            scr_tab[i * 2] = ' ';
-            scr_tab[i * 2 + 1] = 0x0F;
-        }
-        pos = 0;
+        // Clean the screen and move the cursor to second row and first column
+        // We don't clear the first row because it's reserved to display system info
+        // like time, scheduler info, ...
+        clear_display(1);
     }
     else if (c == '\r')
     {
@@ -92,4 +91,51 @@ void console_putbytes(const char *s, int len)
 
     // The cursor position has changed
     update_cursor();
+}
+
+void clear_display(int start)
+{
+    // Reset display
+    for (int i = start * NCOL; i < NCOL * NROW; i++)
+    {
+        scr_tab[i * 2] = ' ';
+        scr_tab[i * 2 + 1] = 0x0F;
+    }
+    pos = NCOL;
+}
+
+void display_time(int h, int m, int s)
+{
+    // Save the current cursor position
+    uint16_t old_pos = get_pos();
+    // Put the cursor a the top right corner
+    set_pos(72);
+    // Print hour
+    printf("%02d:%02d:%02d", h % 24, m % 60, s % 60);
+    // Return at the old position
+    set_cursor(old_pos / NCOL, old_pos % NCOL);
+}
+
+void display_title(const char *s)
+{
+    // Save the current cursor position
+    uint16_t old_pos = get_pos();
+    // Put the cursor a the middle on the top
+    set_pos(30);
+    // Print hour
+    printf(s);
+    // Return at the old position
+    set_cursor(old_pos / NCOL, old_pos % NCOL);
+}
+
+void display_current_process(int pid)
+{
+    // Save the current cursor position
+    uint16_t old_pos = get_pos();
+    // Put the cursor a the middle on the top
+    set_pos(0);
+    // Print hour
+    printf("Processus actif : %d", pid);
+    // Return at the old position
+    set_cursor(old_pos / NCOL, old_pos % NCOL);
 }

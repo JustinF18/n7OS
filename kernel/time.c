@@ -3,6 +3,7 @@
 #include <n7OS/irq.h>
 #include <n7OS/cpu.h>
 #include <stdio.h>
+#include <n7OS/process.h>
 
 extern void handler_TIMER();
 
@@ -28,15 +29,7 @@ void print_hhmmss()
     int m = s / 60;
     int h = m / 60;
 
-    // Save the current cursor position
-    uint16_t old_pos = get_pos();
-
-    // Put the cursor a the top right corner
-    set_pos(72);
-    // Print hour
-    printf("%02d:%02d:%02d", h % 24, m % 60, s % 60);
-    // Return at the old position
-    set_cursor(old_pos / NCOL, old_pos % NCOL);
+    display_time(h, m, s);
 }
 
 void handler_timer()
@@ -50,6 +43,7 @@ void handler_timer()
     // Incrémente le compteur du système
     compteur++;
 
+    // Update the time display on the screen
     if (compteur % 1000 == 0)
     {
         print_hhmmss();
@@ -57,4 +51,15 @@ void handler_timer()
 
     // Démasque l'interruption
     outb(inb(0x21) & 0xfe, 0x21);
+
+    // Call the scheduler every 100ms
+    if (compteur % 100 == 0)
+    {
+        schedule();
+    }
+}
+
+int get_time()
+{
+    return compteur;
 }

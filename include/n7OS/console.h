@@ -18,4 +18,12 @@ uint16_t get_pos();
 
 void set_cursor(uint8_t row, uint8_t col);
 
+void display_time(int h, int m, int s);
+
+void clear_display(int start);
+
+void display_title(const char *s);
+
+void display_current_process(int pid);
+
 #endif

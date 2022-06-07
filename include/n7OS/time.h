@@ -5,4 +5,6 @@
 
 void init_timer();
 
+int get_time();
+
 #endif
