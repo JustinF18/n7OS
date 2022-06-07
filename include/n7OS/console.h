@@ -34,4 +34,9 @@ void display_title(const char *s);
  */
 void display_current_process(int pid);
 
+/*
+ * This is the function called to display the bar at the top of the screen.
+ */
+void show_system_infobar();
+
 #endif

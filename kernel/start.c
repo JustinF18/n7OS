@@ -10,14 +10,19 @@
 
 extern void handler_IT();
 
-extern void processus1();
+extern void function1();
 
 void idle()
 {
+    printf("\nDemarrage OK...\n");
+    show_system_infobar();
+    // Affichage du titre
+    display_title("n7OS - Justin");
     printf("\nInitialisation OK...\n");
-    printf("Bienvenue sur mon (petit) OS\n");
+    printf("\n\nBienvenue sur mon 'petit' OS !\n\n");
     // Création du processus 1
-    fork("Processus 1", (fnptr)processus1);
+    fork("Fct 1", (fnptr)function1);
+    fork("Fct 2", (fnptr)function1);
     // on ne doit jamais sortir de idle (processus 0)
     while (1)
     {
@@ -38,8 +43,6 @@ void kernel_start(void)
     // Nettoyage de l'ecran
     // On utilise pas printf("\f"); car on veut aussi supprimer la premiere ligne
     clear_display(0);
-    // Affichage du titre
-    display_title("n7OS - Justin");
 
     // // Test affichage
     // for (int i = 0; i < 30; i++)

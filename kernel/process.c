@@ -23,6 +23,7 @@ int addProcess(pid_t pid)
     if ((new_process = (ProcessWaiting *)malloc(sizeof(ProcessWaiting))) == NULL)
         return -1;
     new_process->pid = pid;
+    new_process->next = NULL;
     // Add the element to our FIFO
     if (readyList.first == NULL)
     {
@@ -34,6 +35,7 @@ int addProcess(pid_t pid)
     {
         // Add the process at the end of the list
         readyList.last->next = new_process;
+        readyList.last = new_process;
     }
     return 0;
 }
@@ -134,6 +136,7 @@ void scheduler(int bloquer)
         pid_t new = depiler();
         if (bloquer == 0)
         {
+            // printf("Save old process %d (new is %d)...\n", old, new);
             addProcess(old);
         }
         if (new == old)
@@ -142,6 +145,7 @@ void scheduler(int bloquer)
         }
         display_current_process(new);
         pid_actif = new;
+        // printf("Switching from %d to %d\n", old, new);
         ctx_sw((void *)&process_table[old].ctx, (void *)&process_table[new].ctx);
     }
 }
@@ -232,6 +236,7 @@ int bloquer(int seconds)
         return -1;
     new_process->pid = pid;
     new_process->wake_up_time = get_time() + seconds * 1000;
+    new_process->next = NULL;
     // Add the process to the sleeping users list
     if (sleepingList.first == NULL)
     {
