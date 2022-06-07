@@ -39,8 +39,12 @@ struct process_t
 pid_t creer_process();
 int detruire_process();
 
+pid_t get_pid();
+
 void schedule();
 
 void activer(pid_t pid);
+
+int bloquer(int time);
 
 #endif

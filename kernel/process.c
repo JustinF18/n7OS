@@ -1,57 +1,89 @@
-#include "n7OS/process.h"
+#include <n7OS/process.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
 #include <stddef.h>
+#include <n7OS/console.h>
+#include <n7OS/time.h>
 
-struct process_t process_table[NB_PROC];
-// uint32_t stack_table[NB_PROC * STACK_SIZE];
-static const struct process_t EmptyStruct;
-
-pid_t next_pid = 0;
+extern void ctx_sw(void *ctx_old, void *ctx_new);
 
 // Ordonancement
-typedef struct ProcessList
+typedef struct ProcessWaiting ProcessWaiting;
+struct ProcessWaiting
 {
     pid_t pid;
-    struct ProcessList *next;
-} ProcessWaiting;
+    ProcessWaiting *next;
+};
 
-ProcessWaiting *readyList; // Un peu trop grand ce tableau
+typedef struct ProcessReadyFile
+{
+    ProcessWaiting *first;
+    ProcessWaiting *last;
+    int size;
+} ProcessReadyFile;
 
+ProcessReadyFile readyList;
+pid_t pid_actif = 0;
+
+typedef struct ProcessSleeping ProcessSleeping;
+struct ProcessSleeping
+{
+    pid_t pid;
+    int wake_up_time;
+    ProcessSleeping *next;
+};
+
+typedef struct ProcessSleepingFile
+{
+    ProcessSleeping *first;
+    int size;
+} ProcessSleepingFile;
+ProcessSleepingFile sleepingList;
+
+// Add a process pid to the ready list
 int addProcess(pid_t pid)
 {
     ProcessWaiting *new_process;
     if ((new_process = (ProcessWaiting *)malloc(sizeof(ProcessWaiting))) == NULL)
         return -1;
     new_process->pid = pid;
-    if (readyList == NULL)
+    if (readyList.first == NULL)
     {
-        readyList = new_process;
+        // The list is empty, add the process
+        readyList.first = new_process;
+        readyList.last = new_process;
     }
     else
     {
-        readyList->next = new_process;
+        // Add the process at the end of the list
+        readyList.last->next = new_process;
     }
     return 0;
 }
 
+// Get the process pid of the next process to run
 pid_t depiler()
 {
-    pid_t pid = readyList->pid;
+    pid_t pid = readyList.first->pid;
     ProcessWaiting *supp_element;
     // if (readyList == NULL)
     //     return -1;
-    supp_element = readyList;
-    readyList = readyList->next;
+    supp_element = readyList.first;
+    readyList.first = readyList.first->next;
+    if (readyList.first == NULL)
+    {
+        readyList.last = NULL;
+    }
     free(supp_element);
     return pid;
 }
 
-pid_t pid_actif = 0;
-
-void ctx_sw(void *ctx_old, void *ctx_new);
+// Process struct
+struct process_t process_table[NB_PROC];
+static const struct process_t EmptyStruct;
+pid_t next_pid = 0;
 
 int allouer_pid()
 {
@@ -64,12 +96,6 @@ int allouer_pid()
         return -1;
     }
 }
-
-// void *init_stack()
-// {
-//     // allouer_pid à déjà été appelé, next_pid est correct
-//     return &stack_table[next_pid * STACK_SIZE];
-// }
 
 pid_t creer_process(const char *name, fnptr function)
 {
@@ -84,7 +110,6 @@ pid_t creer_process(const char *name, fnptr function)
 
     // Create an entry in process_table
     process_table[pid].pid = pid;
-    // process_table[pid].stack = init_stack();
     process_table[pid].state = PRET;
 
     // Add the function address in stack
@@ -100,6 +125,9 @@ pid_t creer_process(const char *name, fnptr function)
     // Process created
     printf("Process %d created\n", pid);
     next_pid++;
+
+    addProcess(pid);
+
     return pid;
 }
 
@@ -107,44 +135,102 @@ int detruire_process(pid_t pid)
 {
     // Cleaning the process_table
     process_table[pid] = EmptyStruct;
-    // Cleaning the stack
-    // for (int i = 0; i < STACK_SIZE; i++)
-    // {
-    //     stack_table[pid * STACK_SIZE + i] = 0;
-    // }
-    // memset(&stack_table[pid * STACK_SIZE], 0, STACK_SIZE);
-    // Remove an entry in process_table
-    // process_table[pid].pid = 0;
-    // process_table[pid].stack = NULL;
     printf("Process %d deleted\n", pid);
     return 0;
 }
 
+// Get the pid of the process which is running
+pid_t get_pid()
+{
+    return pid_actif;
+}
+
 void activer(pid_t pid)
 {
-    // TODO dans une autre vie : Vérifier que le PID existe
     pross_state_t etat = process_table[pid].state;
-    if (etat == PRET)
+    if (etat == BLOQUE)
     {
         process_table[pid].state = PRET;
-        addProcess(pid);
-        schedule();
     }
-    else if (etat == BLOQUE)
+    addProcess(pid);
+    // schedule();
+}
+
+void scheduler(int bloquer)
+{
+    // Changer de processus
+    pid_t old = pid_actif;
+    if (readyList.first != NULL)
     {
-        process_table[pid].state = PRET;
+        pid_t new = depiler();
+
+        if (bloquer == 0)
+        {
+            addProcess(old);
+        }
+        if (new == old)
+        {
+            return;
+        }
+        display_current_process(new);
+        pid_actif = new;
+        ctx_sw((void *)&process_table[old].ctx, (void *)&process_table[new].ctx);
     }
 }
 
 void schedule()
 {
-    pid_t old = pid_actif;
-    if (readyList != NULL)
+    if (sleepingList.first != NULL)
     {
-        pid_t new = depiler();
-        printf("Switching from process %d to %d\n", old, new);
-        pid_actif = new;
-        addProcess(old);
-        ctx_sw((void *)&process_table[old].ctx, (void *)&process_table[new].ctx);
+        // Debloquer tous les processus qui ont fini de dormir
+        int current_time = get_time();
+        ProcessSleeping *current = sleepingList.first;
+        while (current != NULL)
+        {
+            if (current_time > current->wake_up_time)
+            {
+                activer(current->pid);
+                // Supprimer le processus de la file
+                ProcessSleeping *supp_element;
+                supp_element = current;
+                current = current->next;
+                free(supp_element);
+                sleepingList.size = sleepingList.size - 1;
+            }
+            else
+            {
+                current = current->next;
+            }
+        }
+        if (sleepingList.size == 0)
+        {
+            sleepingList.first = NULL;
+        }
     }
+    // Changer de processus
+    scheduler(0);
+}
+
+// Sleep the process for a given time
+int bloquer(int seconds)
+{
+    pid_t pid = pid_actif;
+    ProcessSleeping *new_process;
+    if ((new_process = (ProcessSleeping *)malloc(sizeof(ProcessSleeping))) == NULL)
+        return -1;
+    new_process->pid = pid;
+    new_process->wake_up_time = get_time() + seconds * 1000;
+    if (sleepingList.first == NULL)
+    {
+        sleepingList.first = new_process;
+    }
+    else
+    {
+        new_process->next = sleepingList.first;
+        sleepingList.first = new_process;
+    }
+    sleepingList.size++;
+    process_table[pid].state = BLOQUE;
+    scheduler(1);
+    return 0;
 }

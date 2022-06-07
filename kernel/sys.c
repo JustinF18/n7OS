@@ -61,10 +61,11 @@ int sys_exit()
 
 pid_t sys_getpid()
 {
-  return 0;
+  return get_pid();
 }
 
 int sys_sleep(int seconds)
 {
+  bloquer(seconds);
   return -1;
 }

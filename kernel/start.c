@@ -14,11 +14,10 @@ extern void processus1();
 
 void idle()
 {
-    // detruire_process(pid1);
-
-    // Bascule vers le processus 1
-    activer(1);
-    printf("IDLE\n");
+    printf("\nInitialisation OK...\n");
+    printf("Bienvenue sur mon (petit) OS\n");
+    // Création du processus 1
+    fork("Processus 1", (fnptr)processus1);
     // on ne doit jamais sortir de idle (processus 0)
     while (1)
     {
@@ -37,7 +36,10 @@ void kernel_start(void)
     sti();
 
     // Nettoyage de l'ecran
-    printf("\f");
+    // On utilise pas printf("\f"); car on veut aussi supprimer la premiere ligne
+    clear_display(0);
+    // Affichage du titre
+    display_title("n7OS - Justin");
 
     // // Test affichage
     // for (int i = 0; i < 30; i++)
@@ -56,15 +58,11 @@ void kernel_start(void)
     // }
 
     // printf("Bienvenue\n");
-    // printf("Bye\n");
 
     // write("Test write\n", 11);
 
     // Création du processus 0
     fork("IDLE", (fnptr)idle);
-
-    // Création du processus 1
-    fork("Processus 1", (fnptr)processus1);
 
     idle();
 }
