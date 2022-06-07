@@ -12,18 +12,26 @@
  */
 void console_putbytes(const char *s, int len);
 
-void set_pos(uint16_t pos);
-
-uint16_t get_pos();
-
-void set_cursor(uint8_t row, uint8_t col);
-
+/*
+ * This is the function called to update the screen time, it is displayed on the top left corner.
+ */
 void display_time(int h, int m, int s);
 
+/*
+ * This is the function called to clear the screen.
+ * If start equals to 0 then all the screen is cleared.
+ * If start equals to 1 then all the screen is cleared except row 0.
+ */
 void clear_display(int start);
 
+/*
+ * This is the function called to update the title of the console windows.
+ */
 void display_title(const char *s);
 
+/*
+ * This is the function called to display the running process on the top right corner.
+ */
 void display_current_process(int pid);
 
 #endif

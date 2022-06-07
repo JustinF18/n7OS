@@ -19,11 +19,6 @@ void set_pos(uint16_t newpos)
     pos = newpos;
 }
 
-uint16_t get_pos()
-{
-    return pos;
-}
-
 void set_cursor(uint8_t row, uint8_t col)
 {
     pos = NCOL * row + col;
@@ -81,7 +76,6 @@ void console_putchar(const char c)
     }
 }
 
-// Print a string on the screen
 void console_putbytes(const char *s, int len)
 {
     for (int i = 0; i < len; i++)
@@ -107,7 +101,7 @@ void clear_display(int start)
 void display_time(int h, int m, int s)
 {
     // Save the current cursor position
-    uint16_t old_pos = get_pos();
+    uint16_t old_pos = pos;
     // Put the cursor a the top right corner
     set_pos(72);
     // Print hour
@@ -119,7 +113,7 @@ void display_time(int h, int m, int s)
 void display_title(const char *s)
 {
     // Save the current cursor position
-    uint16_t old_pos = get_pos();
+    uint16_t old_pos = pos;
     // Put the cursor a the middle on the top
     set_pos(30);
     // Print hour
@@ -131,7 +125,7 @@ void display_title(const char *s)
 void display_current_process(int pid)
 {
     // Save the current cursor position
-    uint16_t old_pos = get_pos();
+    uint16_t old_pos = pos;
     // Put the cursor a the middle on the top
     set_pos(0);
     // Print hour

@@ -9,46 +9,21 @@
 
 extern void ctx_sw(void *ctx_old, void *ctx_new);
 
-// Ordonancement
-typedef struct ProcessWaiting ProcessWaiting;
-struct ProcessWaiting
-{
-    pid_t pid;
-    ProcessWaiting *next;
-};
-
-typedef struct ProcessReadyFile
-{
-    ProcessWaiting *first;
-    ProcessWaiting *last;
-    int size;
-} ProcessReadyFile;
-
-ProcessReadyFile readyList;
-pid_t pid_actif = 0;
-
-typedef struct ProcessSleeping ProcessSleeping;
-struct ProcessSleeping
-{
-    pid_t pid;
-    int wake_up_time;
-    ProcessSleeping *next;
-};
-
-typedef struct ProcessSleepingFile
-{
-    ProcessSleeping *first;
-    int size;
-} ProcessSleepingFile;
-ProcessSleepingFile sleepingList;
+// Scheduling
+ProcessReadyFile readyList;       // Store the processes that are waiting for CPU
+ProcessSleepingFile sleepingList; // Store the processes that are sleeping
+ProcessOverFile endedList;        // Store the processes that are ended and waiting for cleaning
+pid_t pid_actif = 0;              // PID of procces which is running
 
 // Add a process pid to the ready list
 int addProcess(pid_t pid)
 {
     ProcessWaiting *new_process;
+    // Allocation of ressources
     if ((new_process = (ProcessWaiting *)malloc(sizeof(ProcessWaiting))) == NULL)
         return -1;
     new_process->pid = pid;
+    // Add the element to our FIFO
     if (readyList.first == NULL)
     {
         // The list is empty, add the process
@@ -63,7 +38,8 @@ int addProcess(pid_t pid)
     return 0;
 }
 
-// Get the process pid of the next process to run
+// Get the process pid of the next process to run,
+// before calling this function, check that the list of waiting processes isn't void.
 pid_t depiler()
 {
     pid_t pid = readyList.first->pid;
@@ -123,20 +99,12 @@ pid_t creer_process(const char *name, fnptr function)
     process_table[pid].ctx[EDI] = 0;
 
     // Process created
-    printf("Process %d created\n", pid);
+    printf("[INFO] - Process %d created\n", pid);
     next_pid++;
 
     addProcess(pid);
 
     return pid;
-}
-
-int detruire_process(pid_t pid)
-{
-    // Cleaning the process_table
-    process_table[pid] = EmptyStruct;
-    printf("Process %d deleted\n", pid);
-    return 0;
 }
 
 // Get the pid of the process which is running
@@ -156,6 +124,7 @@ void activer(pid_t pid)
     // schedule();
 }
 
+// If "bloquer" equals to 0 we have to add the old process to the list of waiting users
 void scheduler(int bloquer)
 {
     // Changer de processus
@@ -163,7 +132,6 @@ void scheduler(int bloquer)
     if (readyList.first != NULL)
     {
         pid_t new = depiler();
-
         if (bloquer == 0)
         {
             addProcess(old);
@@ -180,15 +148,16 @@ void scheduler(int bloquer)
 
 void schedule()
 {
+    // Check for process to wake up
     if (sleepingList.first != NULL)
     {
-        // Debloquer tous les processus qui ont fini de dormir
         int current_time = get_time();
         ProcessSleeping *current = sleepingList.first;
         while (current != NULL)
         {
             if (current_time > current->wake_up_time)
             {
+                // Need to wake up this process
                 activer(current->pid);
                 // Supprimer le processus de la file
                 ProcessSleeping *supp_element;
@@ -207,8 +176,51 @@ void schedule()
             sleepingList.first = NULL;
         }
     }
+    // Check for process to removed from process table
+    if (endedList.first != NULL)
+    {
+        // There are processes to remove
+        ProcessWaiting *current = endedList.first;
+        while (current != NULL)
+        {
+            // Cleaning the process_table
+            process_table[current->pid] = EmptyStruct;
+            printf("[INFO] - Process %d deleted\n", current->pid);
+            // Supprimer le processus de la file
+            ProcessWaiting *supp_element;
+            supp_element = current;
+            current = current->next;
+            free(supp_element);
+            endedList.size = endedList.size - 1;
+        }
+        endedList.first = NULL;
+    }
     // Changer de processus
     scheduler(0);
+}
+
+int detruire_process()
+{
+    pid_t pid = pid_actif;
+    ProcessWaiting *new_process;
+    // Allocate ressources
+    if ((new_process = (ProcessWaiting *)malloc(sizeof(ProcessWaiting))) == NULL)
+        return -1;
+    new_process->pid = pid;
+    new_process->next = NULL;
+    // Add the process to delete in our list
+    if (endedList.first == NULL)
+    {
+        endedList.first = new_process;
+    }
+    else
+    {
+        new_process->next = endedList.first;
+        endedList.first = new_process;
+    }
+    endedList.size++;
+    scheduler(1);
+    return 0;
 }
 
 // Sleep the process for a given time
@@ -220,6 +232,7 @@ int bloquer(int seconds)
         return -1;
     new_process->pid = pid;
     new_process->wake_up_time = get_time() + seconds * 1000;
+    // Add the process to the sleeping users list
     if (sleepingList.first == NULL)
     {
         sleepingList.first = new_process;
@@ -231,6 +244,7 @@ int bloquer(int seconds)
     }
     sleepingList.size++;
     process_table[pid].state = BLOQUE;
+    printf("[INFO] - Process %d will sleep for %d s.\n", pid, seconds);
     scheduler(1);
     return 0;
 }

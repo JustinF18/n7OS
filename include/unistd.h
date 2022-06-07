@@ -55,12 +55,10 @@
 		return __res;                                               \
 	}
 
+// Définition des fonctions provoquant les appels systèmes
 int example();
-
 int shutdown(int n);
-
 int write(const char *s, int len);
-
 pid_t fork(const char *name, fnptr function);
 int exit();
 pid_t getpid();

@@ -43,14 +43,14 @@ void handler_timer()
     // Incrémente le compteur du système
     compteur++;
 
+    // Démasque l'interruption
+    outb(inb(0x21) & 0xfe, 0x21);
+
     // Update the time display on the screen
     if (compteur % 1000 == 0)
     {
         print_hhmmss();
     }
-
-    // Démasque l'interruption
-    outb(inb(0x21) & 0xfe, 0x21);
 
     // Call the scheduler every 100ms
     if (compteur % 100 == 0)

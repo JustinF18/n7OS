@@ -7,11 +7,15 @@
 
 void processus1()
 {
+  // sti() obligatoire au debut des fonctions, je n'ai pas trouvé comme le supprimer...
   sti();
-  init_timer();
   printf("Hello, world from P1, my pid : %d\n", getpid());
-  sleep(5);
-  printf("(%d) J'ai dormis 5 secondes.", getpid());
+  sleep(2);
+  printf("(%d) J'ai dormis 2 secondes.\n", getpid());
+  sleep(1);
+  printf("(%d) Je vais me terminer.\n", getpid());
+  exit();
+  printf("ERREUR ! Je suis terminé, on ne devrait pas me voir.....\n");
   for (;;)
     ;
 }

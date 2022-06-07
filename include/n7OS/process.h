@@ -36,15 +36,62 @@ struct process_t
     uint32_t ctx[5];
 };
 
-pid_t creer_process();
+/*
+ * This is the function to create a process
+ */
+pid_t creer_process(const char *name, fnptr function);
+
+/*
+ * This is the function to destroy a process
+ */
 int detruire_process();
 
+/*
+ * Return the pid of the process which is running
+ */
 pid_t get_pid();
 
+/*
+ * This is the function that do the scheduling and which check the sleeping List or ended list.
+ */
 void schedule();
 
-void activer(pid_t pid);
-
+/*
+ * This is the function that block the process which is running for a given time
+ */
 int bloquer(int time);
+
+// SCHEDULING
+typedef struct ProcessWaiting ProcessWaiting;
+struct ProcessWaiting
+{
+    pid_t pid;
+    ProcessWaiting *next;
+};
+typedef struct ProcessReadyFile
+{
+    ProcessWaiting *first;
+    ProcessWaiting *last;
+    int size;
+} ProcessReadyFile;
+
+typedef struct ProcessSleeping ProcessSleeping;
+struct ProcessSleeping
+{
+    pid_t pid;
+    int wake_up_time;
+    ProcessSleeping *next;
+};
+typedef struct ProcessSleepingFile
+{
+    ProcessSleeping *first;
+    int size;
+} ProcessSleepingFile;
+
+typedef struct ProcessOverFile
+{
+    ProcessWaiting *first;
+    int size;
+} ProcessOverFile;
 
 #endif

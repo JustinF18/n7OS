@@ -56,7 +56,8 @@ pid_t sys_fork(const char *name, fnptr function)
 
 int sys_exit()
 {
-  return -1;
+  detruire_process();
+  return 1;
 }
 
 pid_t sys_getpid()
