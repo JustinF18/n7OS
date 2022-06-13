@@ -1,19 +1,20 @@
 #include <n7OS/cpu.h>
-#include <n7OS/sys.h>
 #include <stdio.h>
-#include <n7OS/process.h>
 #include <unistd.h>
-#include <n7OS/time.h>
+
+// extern void extinction();
 
 void function1()
 {
   // sti() obligatoire au debut des fonctions, je n'ai pas trouvé comme le supprimer...
   sti();
-  printf("Hello, world from function 1, my pid : %d\n", getpid());
+  pid_t my_pid = getpid();
+  printf("(%d) Hello, world from function 1, my pid : %d\n", my_pid, my_pid);
   sleep(2);
-  printf("(%d) J'ai dormis 2 secondes.\n", getpid());
+  printf("(%d) J'ai dormis 2 secondes.\n", my_pid);
   sleep(1);
-  printf("(%d) Je vais me terminer.\n", getpid());
+  // fork("Extinction", (fnptr)extinction);
+  printf("(%d) Je vais me terminer.\n", my_pid);
   exit();
   printf("ERREUR ! Je suis terminé, on ne devrait pas me voir.....\n");
   for (;;)

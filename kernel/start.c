@@ -23,7 +23,7 @@ void idle()
     // Création du processus 1
     fork("Fct 1", (fnptr)function1);
     fork("Fct 2", (fnptr)function1);
-    // on ne doit jamais sortir de idle (processus 0)
+    //   on ne doit jamais sortir de idle (processus 0)
     while (1)
     {
         // cette fonction arrete le processeur
